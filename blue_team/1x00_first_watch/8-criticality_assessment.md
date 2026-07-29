@@ -1,0 +1,30 @@
+# Asset Criticality Assessment
+
+## Asset Criticality Matrix
+
+| Asset Category | Confidentiality | Integrity | Availability | Overall Criticality | Justification |
+|---|---|---|---|---|---|
+| EHR System (`ehr-srv-01`, `ehr-db-01`) | Critical | Critical | Critical | Critical | Stores medical histories, prescriptions, and lab results for the organization's entire patient population; the database is currently reachable from the whole flat network rather than restricted to the application server, and the May 22 outage already forced a return to paper records — every CIA pillar is independently at Critical severity. |
+| PACS / Imaging (`pacs-srv-01`, MRI, CT) | High | Critical | High | Critical | Diagnostic imaging errors or unavailability directly delay or misdirect clinical decisions; the MRI's confirmed Windows XP baseline and the CT scanner's unconfirmed OS, both on the same flat network as everything else, mean an Integrity failure (altered images) could cause a misdiagnosis. |
+| Billing / Financial Infrastructure (`billing-srv-01`) | High | High | High | High | Already suffered a 4-day claims-processing outage and an active cryptomining compromise; exposes insurance/financial data and disrupts revenue cycle, but does not directly endanger a patient's clinical care the way the EHR or PACS systems do. |
+| Patient Portal / Public Website (`web-srv-01`) | High | High | Medium | High | Directly exposed patient lab results to other patients in Incident B; sits in the DMZ, making it the organization's most internet-exposed asset, though its unavailability is an inconvenience rather than a clinical emergency. |
+| Pharmacy Management System | High | Critical | High | Critical | Incorrect dosage data displayed hospital-wide for 6 hours (Incident C) demonstrates that an Integrity failure here has an immediate, hospital-wide patient-safety consequence; notably, no server in the IT asset export is confirmed to host this system — a documentation gap in its own right. |
+| Medical IoT — Life-Safety Devices (Philips monitors, ~80 units; BD Alaris infusion pumps, ~120 units) | Medium | Critical | Critical | Critical | Manipulated vitals or infusion dosing is a direct, immediate life-safety risk; these ~200 devices sit on the same flat `10.10.0.0/16` network as every workstation and server in the building, with no segmentation whatsoever. |
+| Network Core Infrastructure (FortiGate, Cisco switches, `ad-dc-01/02`) | High | High | Critical | Critical | Every other system depends on this layer; the organization has exactly one firewall total, no VLANs anywhere at Central, and the network closet housing this hardware is unlocked with credentials posted on the wall. |
+| Backup Infrastructure (`backup-srv-01` + NAS) | Medium | High | Critical | Critical | Nominally a Corrective control for every other system in this table, but its co-location with production in the same room, network, and rack means its own failure mode is identical to the systems it is meant to save — elevating it to Critical in its own right. |
+| Westside Clinic Infrastructure (`ws-srv-01`, local network) | Medium | Medium | High | High | Serves a smaller population (~180 staff, outpatient only, no MRI) than Central, but is defended by a consumer-grade router with no firewall at all — the weakest technical posture of any site, disproportionate to its size. |
+| Clinical Endpoints (nurse stations, physician workstations, iPads) | High | Medium | Medium | High | The access point through which EHR and PACS data reaches staff; the unattended, unlocked session in Observation 3 shows this layer is a live Confidentiality gap regardless of the hardware's own criticality. |
+| Corporate HQ Infrastructure (workstations, HR/Finance/Legal data) | Medium | Medium | Low | Medium | Employee and financial records carry real but comparatively lower regulatory and life-safety weight than PHI; HQ has no on-premise servers, reducing (though not eliminating) its own attack surface. |
+| Radiology Shared Credential / Physical Security Layer (server room, network closet, HID badge system) | Medium | High | High | High | Does not hold data itself but is the control layer protecting everything above it; partial badge/AD integration, a shared PACS login, and an unlocked network closet mean this category's own weaknesses cascade into every other category's risk. |
+
+## Top 5 Most Critical Assets
+
+1. **EHR System (`ehr-srv-01` / `ehr-db-01`).** The system every physician depends on for treatment decisions across all three sites, now confirmed to have a database reachable from the entire flat network rather than isolated to its application tier — this is both the highest-value target in the organization and, currently, one of the easiest to reach from anywhere on the network.
+
+2. **Medical IoT — Infusion Pumps and Vital-Signs Monitors.** With the full asset count now confirmed (~200 life-safety devices), and Marcus's own notes stating plainly that "if someone gets on the network they can reach the pumps," this category represents the most direct life-safety exposure in the entire environment, and it sits on the exact same unsegmented network as every other system in this table.
+
+3. **Pharmacy Management System.** Incident C proved that an Integrity failure here propagates to all three sites simultaneously and was caught only by a pharmacist's manual cross-check; the fact that no server in MedDefense's own IT asset export is confirmed to host this system is itself a governance red flag.
+
+4. **PACS / MRI / CT Imaging Chain.** The MRI's confirmed unpatched OS, the CT scanner's unconfirmed OS, and their shared position on the flat network make this the category with the most concentrated, confirmed technical exposure combined with a direct diagnostic-accuracy consequence.
+
+5. **Network Core Infrastructure.** A single firewall for the entire organization, zero VLANs at Central, and an unlocked closet housing the switches everything else depends on — this is the layer where a single structural investment (segmentation) would reduce risk across every other item on this list simultaneously.
